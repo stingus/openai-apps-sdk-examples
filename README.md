@@ -60,6 +60,34 @@ To iterate on your components locally, you can also launch the Vite dev server:
 pnpm run dev
 ```
 
+### Run the Vite dev server over HTTPS (custom cert)
+
+If you need HTTPS locally, you can point Vite at your SSL certificate and key:
+
+- Enable HTTPS by setting `DEV_HTTPS=1` (or `VITE_HTTPS=1`).
+- Provide paths to your certificate and key via `SSL_CERT_FILE` and `SSL_KEY_FILE` (or `VITE_SSL_CERT` and `VITE_SSL_KEY`).
+
+Examples:
+
+```bash
+# Using OpenSSL-generated cert and key
+DEV_HTTPS=1 \
+SSL_CERT_FILE=$HOME/.config/dev-certs/localhost.crt \
+SSL_KEY_FILE=$HOME/.config/dev-certs/localhost.key \
+pnpm run dev
+```
+
+```bash
+# On macOS, with mkcert
+mkcert -install
+mkcert localhost 127.0.0.1 ::1
+DEV_HTTPS=1 SSL_CERT_FILE=./localhost.pem SSL_KEY_FILE=./localhost-key.pem pnpm run dev
+```
+
+Notes:
+- If you set `DEV_HTTPS=1` without providing files, Vite will still attempt to start in HTTPS mode using a fallback/self-signed certificate depending on your environment.
+- The dev server still listens on port 4444 by default; use https://localhost:4444.
+
 ## Serve the static assets
 
 If you want to preview the generated bundles without the MCP servers, start the static file server after running a build:

@@ -1,4 +1,4 @@
-import { defineConfig, type Plugin } from "vite";
+import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import fg from "fast-glob";
 import path from "node:path";
@@ -201,32 +201,57 @@ if (!window.__vite_plugin_react_preamble_installed__) {
 
 const inputs = buildInputs();
 
-export default defineConfig(({}) => ({
-  plugins: [
-    tailwindcss(),
-    react(),
-    multiEntryDevEndpoints({ entries: inputs }),
-  ],
-  cacheDir: "node_modules/.vite-react",
-  server: {
-    port: 4444,
-    strictPort: true,
-    cors: true,
-  },
-  esbuild: {
-    jsx: "automatic",
-    jsxImportSource: "react",
-    target: "es2022",
-  },
-  build: {
-    target: "es2022",
-    sourcemap: true,
-    minify: "esbuild",
-    outDir: "assets",
-    assetsDir: ".",
-    rollupOptions: {
-      input: inputs,
-      preserveEntrySignatures: "strict",
+function getHttpsConfig(): false | { key: Buffer; cert: Buffer } {
+  // Enable by setting DEV_HTTPS=1 or VITE_HTTPS=1
+  const enable = process.env.DEV_HTTPS === "1" || process.env.VITE_HTTPS === "1";
+  if (!enable) return false;
+
+  const certPath = process.env.SSL_CERT_FILE || process.env.VITE_SSL_CERT;
+  const keyPath = process.env.SSL_KEY_FILE || process.env.VITE_SSL_KEY;
+
+  if (certPath && keyPath && fs.existsSync(certPath) && fs.existsSync(keyPath)) {
+    try {
+      return {
+        cert: fs.readFileSync(certPath),
+        key: fs.readFileSync(keyPath),
+      };
+    } catch (e) {
+      // Fall through to disable on error
+    }
+  }
+
+  // If files not provided or not found, fall back to built-in https true (self-signed) if supported
+  // Vite will prompt or use a fallback cert depending on environment
+  return true as unknown as any;
+}
+
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), "");
+  Object.assign(process.env, env);
+  return {
+    plugins: [tailwindcss(), react(), multiEntryDevEndpoints({ entries: inputs })],
+    cacheDir: "node_modules/.vite-react",
+    server: {
+      port: 4444,
+      strictPort: true,
+      cors: true,
+      https: getHttpsConfig() || undefined,
     },
-  },
-}));
+    esbuild: {
+      jsx: "automatic",
+      jsxImportSource: "react",
+      target: "es2022",
+    },
+    build: {
+      target: "es2022",
+      sourcemap: true,
+      minify: "esbuild",
+      outDir: "assets",
+      assetsDir: ".",
+      rollupOptions: {
+        input: inputs,
+        preserveEntrySignatures: "strict",
+      },
+    },
+  };
+});

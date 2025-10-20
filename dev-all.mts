@@ -21,7 +21,7 @@ function startVite(configFile: string, port: number) {
       stdio: ["ignore", "pipe", "pipe"],
       env: {
         ...process.env,
-        VITE_DEV_CLIENT_ORIGIN: `http://localhost:${port}`,
+        VITE_DEV_CLIENT_ORIGIN: `https://localhost:${port}`,
       },
     }
   );
